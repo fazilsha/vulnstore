@@ -10,7 +10,19 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": "Fazil Sha",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^5.2.1"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fazilsha/vulnstore.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fazilsha/vulnstore/issues"
+  },
+  "homepage": "https://github.com/fazilsha/vulnstore#readme"
 }
