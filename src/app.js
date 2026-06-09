@@ -1,9 +1,15 @@
 const express = require('express');
+const path = require('path');
 
 const app = express();
 
 const PORT = 3000;
 
+
+
+app.use(express.urlencoded({
+    extended: true
+}));
 /*
 ====================================
 Home Page
@@ -37,9 +43,14 @@ Register Page
 ====================================
 */
 app.get('/register', (req, res) => {
-    res.send('Register Page');
+    res.sendFile(path.join( __dirname, 'views', 'register.html' ));
 });
+console.log(__dirname);
 
+app.post('/register', (req, res) => {
+    console.log('Received registration data:', req.body);
+    res.send('Registration successful!');
+});
 /*
 ====================================
 Search Page

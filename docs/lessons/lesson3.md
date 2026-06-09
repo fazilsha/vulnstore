@@ -733,6 +733,25 @@ For each request identify:
 
 ---
 
+What We Have NOT Learned Yet
+
+Still pending:
+
+POST Requests
+Forms
+req.body
+HTML Pages
+Templates
+SQLite
+Authentication
+Sessions
+Cookies
+Authorization
+Middleware
+Controllers
+Services
+DevSecOps
+
 # Next Lesson
 
 Lesson 4 – HTML Pages, Forms, POST Requests, Request Bodies, and User Registration
