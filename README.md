@@ -29,11 +29,11 @@ Phase 1: Project Initialization
 
 Lesson 1 - How Web Applications Work ✅
 
-Lesson 2 - Create a Web Server
+Lesson 2 - Create a Web Server ✅
 
-Lesson 3 - Handle Pages
+Lesson 3 - Handle Pages ✅
 
-Lesson 4 - Handle User Input
+Lesson 4 - Handle User Input ✅
 
 Lesson 5 - Store Data
 
