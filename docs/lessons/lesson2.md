@@ -1,511 +1,419 @@
-# Lesson 1 – Understanding How Web Applications Actually Work
+# Lesson 2 – HTTP Requests, Express Middleware, and the Request Lifecycle
 
 ## Objective
 
-Before writing any code, understand:
+In Lesson 1, we learned the high-level architecture of a web application.
 
-* What Node.js is
-* What Express is
-* What SQLite is
-* How a request flows through an application
-* Where vulnerabilities are introduced
-* How an AppSec engineer views an application
+In this lesson, we will zoom into what happens between the browser and our application.
 
----
+By the end of this lesson, you will understand:
 
-# The Most Important Concept
-
-Every web application is simply:
-
-```text
-Input → Processing → Storage → Output
-```
-
-Everything else is implementation details.
-
-Examples:
-
-```text
-Login
-Search
-Wishlist
-Checkout
-Profile Update
-```
-
-All follow the same pattern.
+* HTTP Requests and Responses
+* HTTP Methods
+* Request Anatomy
+* Response Anatomy
+* Express Request Lifecycle
+* Express Middleware
+* Request Object (`req`)
+* Response Object (`res`)
+* How Express prepares data for our routes
+* Why middleware is important for Application Security
 
 ---
 
-# SnagStore Architecture
+# Recap from Lesson 1
 
-We will build a vulnerable e-commerce application called:
+We learned that every web application follows the same pattern:
 
 ```text
-SnagStore
+Input
+   ↓
+Processing
+   ↓
+Storage
+   ↓
+Output
 ```
 
-High-level architecture:
+For VulnStore:
 
 ```text
 Browser
-   |
-   v
-Express Application
-   |
-   v
+   ↓
+Express
+   ↓
 Business Logic
-   |
-   v
-SQLite Database
+   ↓
+SQLite
 ```
+
+But how does the browser actually communicate with Express?
+
+That is the purpose of HTTP.
 
 ---
 
-# What Is Node.js?
+# What is HTTP?
 
-Node.js is a JavaScript runtime.
+HTTP (HyperText Transfer Protocol) is the communication protocol used between clients and servers.
 
-Before Node.js:
+Example:
 
 ```text
-JavaScript only ran in browsers.
+Browser
+     ⇄
+HTTP
+     ⇄
+Express Server
 ```
 
-After Node.js:
+Every button click, page load, login, search, and checkout becomes an HTTP request.
+
+---
+
+# HTTP Request vs HTTP Response
+
+Every interaction consists of two parts.
+
+Request:
 
 ```text
-JavaScript can run on servers.
+Client → Server
+```
+
+Response:
+
+```text
+Server → Client
 ```
 
 Example:
 
-```javascript
-console.log("Hello World");
-```
-
-Can run inside:
-
-* Chrome Browser
-* Node.js Server
-
-Same language.
-
-Different environment.
-
----
-
-# What Is Express?
-
-Express is a web framework built on top of Node.js.
-
-Think:
-
-```text
-Node.js = Engine
-
-Express = Car
-```
-
-Node.js provides:
-
-* HTTP capabilities
-* File system access
-* Network access
-
-Express provides:
-
-* Routing
-* Request handling
-* Response handling
-* Middleware
-
-Without Express:
-
-```javascript
-Create HTTP server manually
-Parse requests manually
-Handle routing manually
-```
-
-With Express:
-
-```javascript
-app.get('/products')
-```
-
-Much simpler.
-
----
-
-# What Is SQLite?
-
-SQLite is a lightweight database.
-
-Think:
-
-```text
-Excel Sheet
-+
-SQL Queries
-+
-Stored In A File
-```
-
-Example table:
-
-| id | username | password |
-| -- | -------- | -------- |
-| 1  | admin    | admin123 |
-
-Example query:
-
-```sql
-SELECT * FROM users;
-```
-
-SQLite is perfect for learning because:
-
-* No database server required
-* Easy setup
-* Real SQL concepts
-
----
-
-# Request Flow
-
-Let's analyze a login request.
-
-User enters:
-
-```text
-Username: fazil
-Password: pass123
-```
-
-Browser sends:
-
-```http
-POST /login
-```
-
-Request flow:
-
 ```text
 Browser
-   ↓
-Express Route
-   ↓
-Validation
-   ↓
-Database Query
-   ↓
-Database Response
-   ↓
-Business Logic
-   ↓
-HTTP Response
-   ↓
+   │
+   │ GET /products
+   ▼
+Express
+   │
+   │ 200 OK
+   ▼
 Browser
 ```
 
-This flow is the foundation of AppSec.
-
 ---
 
-# Sources and Sinks
+# Common HTTP Methods
 
-An AppSec engineer always identifies:
-
-## Sources
-
-Places where user input enters.
+| Method | Purpose               |
+| ------ | --------------------- |
+| GET    | Retrieve data         |
+| POST   | Create new data       |
+| PUT    | Replace existing data |
+| PATCH  | Update existing data  |
+| DELETE | Remove data           |
 
 Examples:
 
+```http
+GET /products
+```
+
+```http
+POST /register
+```
+
+```http
+PUT /profile
+```
+
+```http
+DELETE /cart/5
+```
+
+---
+
+# Anatomy of an HTTP Request
+
+Example request:
+
+```http
+GET /products/10?q=laptop HTTP/1.1
+Host: localhost:3000
+User-Agent: Chrome
+Accept: text/html
+Cookie: session=abc123
+```
+
+Components:
+
 ```text
-Login Form
-Search Box
-Profile Update
-URL Parameters
+Method
+URL
 Headers
 Cookies
-JSON Request Bodies
+Body (for POST/PUT)
 ```
+
+---
+
+# Anatomy of an HTTP Response
 
 Example:
 
 ```http
-GET /search?q=laptop
+HTTP/1.1 200 OK
+Content-Type: text/html
+
+Welcome to VulnStore
 ```
 
-Source:
+Response contains:
 
-```text
-q=laptop
-```
+* Status Code
+* Headers
+* Response Body
 
 ---
 
-## Sinks
+# Express Request Lifecycle
 
-Places where input becomes dangerous.
+Every request follows the same journey.
+
+```text
+Browser
+      ↓
+HTTP Request
+      ↓
+Express Server
+      ↓
+Middleware
+      ↓
+Route Matching
+      ↓
+Route Handler
+      ↓
+Business Logic
+      ↓
+HTTP Response
+      ↓
+Browser
+```
+
+This flow happens for every request.
+
+---
+
+# What is Middleware?
+
+Middleware is code that executes before the request reaches a route.
+
+Example:
+
+```javascript
+app.use((req, res, next) => {
+
+    console.log(req.method, req.path);
+
+    next();
+
+});
+```
+
+Flow:
+
+```text
+Request
+   ↓
+Middleware
+   ↓
+Route
+   ↓
+Response
+```
+
+The `next()` function tells Express to continue processing the request.
+
+Without calling `next()`, the request stops there.
+
+---
+
+# Why Middleware Matters
+
+Middleware allows us to perform common tasks before route execution.
 
 Examples:
 
-```text
-SQL Query
-HTML Rendering
-File Write
-Command Execution
-XML Parser
-Template Engine
-```
+* Authentication
+* Authorization
+* Logging
+* Rate Limiting
+* Security Headers
+* Request Validation
+* Body Parsing
 
-Example:
-
-```javascript
-res.send(userInput);
-```
-
-Potential XSS sink.
-
-Example:
-
-```javascript
-db.query(userInput);
-```
-
-Potential SQL Injection sink.
+As an AppSec engineer, middleware is one of the first places you look for security controls.
 
 ---
 
-# How Vulnerabilities Are Born
+# Parsing Request Bodies
 
-Vulnerabilities are usually:
+Browsers submit form data in the request body.
 
-```text
-Source
-     +
-Unsafe Sink
-     +
-Missing Security Control
+Express cannot read that body automatically.
+
+We enable body parsing with:
+
+```javascript
+app.use(express.urlencoded({
+    extended: true
+}));
 ```
 
-Example:
+Without this middleware:
 
-```text
-User Input
-     +
-SQL Query
-     +
-No Parameterization
+```javascript
+req.body
 ```
 
-Result:
+would be:
 
 ```text
-SQL Injection
+undefined
+```
+
+This middleware prepares the data so future lessons can access:
+
+```javascript
+req.body.username
+req.body.password
 ```
 
 ---
 
-Example:
+# The Request Object (req)
 
-```text
-User Input
-     +
-HTML Rendering
-     +
-No Output Encoding
+Express creates a request object for every incoming request.
+
+Common properties:
+
+```javascript
+req.method
+req.path
+req.query
+req.params
+req.body
+req.headers
+req.cookies
 ```
 
-Result:
+In the next lesson we will explore `req.query` and `req.params`.
+
+Later we will use `req.body` for HTML forms.
+
+---
+
+# The Response Object (res)
+
+The response object is used to send data back to the browser.
+
+Examples:
+
+```javascript
+res.send("Hello");
+```
+
+```javascript
+res.json({
+    success: true
+});
+```
+
+```javascript
+res.redirect('/login');
+```
+
+Every Express route eventually returns a response.
+
+---
+
+# Express Request Flow
+
+Putting everything together:
 
 ```text
-Stored XSS
+Browser
+      ↓
+HTTP Request
+      ↓
+Middleware
+      ↓
+Express Route
+      ↓
+Business Logic
+      ↓
+Response
+      ↓
+Browser
 ```
+
+This request lifecycle forms the foundation for every web application.
 
 ---
 
 # AppSec Perspective
 
-Developers often see:
+Application Security engineers don't just see HTTP requests.
 
-```text
-Feature
-```
+They see possible attack surfaces.
 
-AppSec engineers see:
+Examples of user-controlled input include:
 
-```text
-Attack Surface
-```
+* URL
+* Query Parameters
+* Route Parameters
+* Form Data
+* Headers
+* Cookies
 
-Example:
-
-Developer sees:
-
-```text
-Wishlist Name
-```
-
-AppSec sees:
-
-```text
-Stored XSS Candidate
-```
+Every request should be considered potentially malicious until validated.
 
 ---
 
-Developer sees:
+# Looking Ahead
 
-```text
-User ID Parameter
-```
+Now that we understand:
 
-AppSec sees:
+* HTTP
+* Request Lifecycle
+* Middleware
+* Requests
+* Responses
 
-```text
-Potential IDOR/BOLA
-```
+we are ready to build multiple routes.
 
----
+In the next lesson we will learn:
 
-# Secure SDLC Thinking
-
-Before building any feature:
-
-## Feature
-
-```text
-Wishlist
-```
-
----
-
-## Assets
-
-What are we protecting?
-
-```text
-User Data
-Session
-Orders
-Payment Information
-```
-
----
-
-## Threats
-
-Possible attacks:
-
-```text
-Stored XSS
-CSRF
-IDOR
-SQL Injection
-```
-
----
-
-## Controls
-
-Security mechanisms:
-
-```text
-Output Encoding
-CSRF Tokens
-Parameterized Queries
-Authorization Checks
-```
-
----
-
-## Testing
-
-Validation:
-
-```text
-SAST
-DAST
-Manual Testing
-Code Review
-```
-
----
-
-# Mental Exercise
-
-Consider a registration page.
-
-Flow:
-
-```text
-Browser
- ↓
-Express
- ↓
-Validation
- ↓
-Database
- ↓
-Response
-```
-
-Identify:
-
-### Sources
-
-Where does user input enter?
-
-### Sinks
-
-Where can input become dangerous?
-
-### Controls
-
-What security controls should be applied?
-
-Think through this before moving to Lesson 2.
+* Express Routing
+* Query Parameters
+* Route Parameters
+* Source → Sink Analysis
+* Our First Reflected XSS
 
 ---
 
 # Key Takeaways
 
-1. Every application is Input → Processing → Storage → Output.
-2. AppSec starts by identifying Sources and Sinks.
-3. Node.js runs JavaScript on the server.
-4. Express handles HTTP requests and routing.
-5. SQLite stores application data.
-6. Most vulnerabilities occur because user-controlled input reaches dangerous sinks without proper security controls.
-7. Understanding data flow is more important than memorizing vulnerabilities.
-
-
-| Framework   | Request            | Response       |
-| ----------- | ------------------ | -------------- |
-| Express     | req                | res            |
-| Flask       | request            | return         |
-| Django      | request            | HttpResponse   |
-| Spring Boot | HttpServletRequest | ResponseEntity |
-| ASP.NET     | HttpRequest        | HttpResponse   |
-| Rails       | params/request     | render         |
+1. Every browser interaction becomes an HTTP request.
+2. Express receives requests and returns responses.
+3. Every request passes through middleware before reaching a route.
+4. Middleware is commonly used for security controls such as authentication, logging, and rate limiting.
+5. `express.urlencoded()` enables Express to parse form data.
+6. Express creates `req` and `res` objects for every request.
+7. Understanding the request lifecycle is essential before learning web vulnerabilities.
 
 ---
 
-Client
- ↓
-Request
- ↓
-Route
- ↓
-Handler
- ↓
-Response
- ↓
-Client
-
 # Next Lesson
 
-Lesson 2 – HTTP Requests, Routes, Express Middleware, and How Data Reaches the Database
+**Lesson 3 – Routing, User Input, Query Parameters, Route Parameters, and Your First Reflected XSS**
