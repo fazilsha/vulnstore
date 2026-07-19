@@ -16,7 +16,7 @@ Home Page
 ====================================
 */
 app.get('/', (req, res) => {
-    res.send('Welcome to VulnStore');
+    res.sendFile(path.join(__dirname, 'views', 'home.html'));
 });
 
 /*
@@ -110,36 +110,44 @@ app.get('/products/:id', (req, res) => {
 });
 /*
 ====================================
-Profile page with SQL Injection Vulnerability
+Profile Page with Second-Order SQL Injection
 ====================================
 */
 
-
-
 app.get('/profile/:id', (req, res) => {
 
+    // 1. Read the user ID from the route parameter.
     const userId = req.params.id;
 
+    // 2. First query: Safely retrieve the user's record using a parameterized query.
+    // No SQL injection is possible at this stage.
     db.get(
         'SELECT username FROM users WHERE id = ?',
         [userId],
         (err, user) => {
 
-            if (err || !user) {
-                return res.send('User not found');
+            // 3. Handle database errors or a missing user.
+            if (err) {
+                return res.status(500).send(err.message);
+            }
+            if (!user) {
+                return res.status(404).send('User not found');
             }
 
-            const query =
-                `SELECT * FROM orders WHERE owner='${user.username}'`;
+            // 4. VULNERABLE STEP: Build a second query using string concatenation.
+            // The username is retrieved from the database and trusted, but it
+            // originated from user input during registration. This is the "second order" part.
+            const query = `SELECT * FROM orders WHERE owner='${user.username}'`;
 
-            console.log(query);
+            // 5. Log the malicious query to the console for the lesson.
+            console.log("Executing vulnerable query:", query);
 
+            // 6. Execute the unsafe query and return the results.
+            // If user.username is "admin' OR 1=1 --", this will dump all orders.
             db.all(query, (err, rows) => {
-
                 if (err) {
-                    return res.send(err.message);
+                    return res.status(500).send(err.message);
                 }
-
                 res.json(rows);
             });
         }
