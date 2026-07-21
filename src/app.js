@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const db = require('./database/db');
@@ -110,55 +111,75 @@ app.get('/products/:id', (req, res) => {
 });
 /*
 ====================================
-Profile Page with Second-Order SQL Injection
+orders Page with Second-Order SQL Injection
 ====================================
 */
-
-app.get('/profile/:id', (req, res) => {
-
-    // 1. Read the user ID from the route parameter.
-    const userId = req.params.id;
-
-    // 2. First query: Safely retrieve the user's record using a parameterized query.
-    // No SQL injection is possible at this stage.
-    db.get(
-        'SELECT username FROM users WHERE id = ?',
-        [userId],
-        (err, user) => {
-
-            // 3. Handle database errors or a missing user.
-            if (err) {
-                return res.status(500).send(err.message);
-            }
-            if (!user) {
-                return res.status(404).send('User not found');
-            }
-
-            // 4. VULNERABLE STEP: Build a second query using string concatenation.
-            // The username is retrieved from the database and trusted, but it
-            // originated from user input during registration. This is the "second order" part.
-            const query = `SELECT * FROM orders WHERE owner='${user.username}'`;
-
-            // 5. Log the malicious query to the console for the lesson.
-            console.log("Executing vulnerable query:", query);
-
-            // 6. Execute the unsafe query and return the results.
-            // If user.username is "admin' OR 1=1 --", this will dump all orders.
-            db.all(query, (err, rows) => {
-                if (err) {
-                    return res.status(500).send(err.message);
-                }
-                res.json(rows);
-            });
-        }
-    );
-});
 
 /*
 ====================================
-Start Server
+Lesson 5
+Second-Order SQL Injection
 ====================================
 */
+
+app.get('/orders/:id', (req, res) => {
+
+    const userId = req.params.id;
+
+    console.log("\n========== Step 1 ==========");
+    console.log("Finding username...");
+
+    // Safe query
+    db.get(
+        "SELECT username FROM users WHERE id = ?",
+        [userId],
+        (err, user) => {
+
+            if(err){
+                return res.status(500).send(err.message);
+            }
+
+            if(!user){
+                return res.status(404).send("User not found");
+            }
+
+            console.log("Username found:");
+            console.log(user.username);
+
+            console.log("\n========== Step 2 ==========");
+            console.log("Building SQL query...");
+
+            // INTENTIONALLY VULNERABLE
+            const query =
+                `SELECT * FROM orders WHERE owner='${user.username}'`;
+
+            console.log(query);
+
+            console.log("\n========== Step 3 ==========");
+            console.log("Executing query...\n");
+
+            db.all(query, (err, rows) => {
+
+                if(err){
+                    return res.status(500).send(err.message);
+                }
+
+                res.json(rows);
+
+            });
+
+        }
+
+    );
+
+});
+
+app.get("/orders", (req,res)=>{
+
+    res.sendFile(path.join(__dirname,"views","orders.html"));
+
+});
+
 app.listen(PORT, () => {
     console.log(`🚀 VulnStore running on http://localhost:${PORT}`);
 });
